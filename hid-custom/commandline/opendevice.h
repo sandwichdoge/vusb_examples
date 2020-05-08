@@ -22,8 +22,8 @@ files according to the GNU General Public License (GPL) version 2 or 3.
 #ifndef __OPENDEVICE_H_INCLUDED__
 #define __OPENDEVICE_H_INCLUDED__
 
-#include <usb.h>    /* this is libusb, see http://libusb.sourceforge.net/ */
 #include <stdio.h>
+#include <usb.h> /* this is libusb, see http://libusb.sourceforge.net/ */
 
 int usbGetStringAscii(usb_dev_handle *dev, int index, char *buf, int buflen);
 /* This function gets a string descriptor from the device. 'index' is the
@@ -36,7 +36,8 @@ int usbGetStringAscii(usb_dev_handle *dev, int index, char *buf, int buflen);
  * usb_strerror() to obtain the error message.
  */
 
-int usbOpenDevice(usb_dev_handle **device, int vendorID, char *vendorNamePattern, int productID, char *productNamePattern, char *serialNamePattern, FILE *printMatchingDevicesFp, FILE *warningsFp);
+int usbOpenDevice(usb_dev_handle **device, int vendorID, char *vendorNamePattern, int productID,
+                  char *productNamePattern, char *serialNamePattern, FILE *printMatchingDevicesFp, FILE *warningsFp);
 /* This function iterates over all devices on all USB busses and searches for
  * a device. Matching is done first by means of Vendor- and Product-ID (passed
  * in 'vendorID' and 'productID'. An ID of 0 matches any numeric ID (wildcard).
@@ -59,18 +60,17 @@ int usbOpenDevice(usb_dev_handle **device, int vendorID, char *vendorNamePattern
  */
 
 /* usbOpenDevice() error codes: */
-#define USBOPEN_SUCCESS         0   /* no error */
-#define USBOPEN_ERR_ACCESS      1   /* not enough permissions to open device */
-#define USBOPEN_ERR_IO          2   /* I/O error */
-#define USBOPEN_ERR_NOTFOUND    3   /* device not found */
-
+#define USBOPEN_SUCCESS 0      /* no error */
+#define USBOPEN_ERR_ACCESS 1   /* not enough permissions to open device */
+#define USBOPEN_ERR_IO 2       /* I/O error */
+#define USBOPEN_ERR_NOTFOUND 3 /* device not found */
 
 /* Obdev's free USB IDs, see USB-IDs-for-free.txt for details */
 
-#define USB_VID_OBDEV_SHARED        5824    /* obdev's shared vendor ID */
-#define USB_PID_OBDEV_SHARED_CUSTOM 1500    /* shared PID for custom class devices */
-#define USB_PID_OBDEV_SHARED_HID    1503    /* shared PID for HIDs except mice & keyboards */
-#define USB_PID_OBDEV_SHARED_CDCACM 1505    /* shared PID for CDC Modem devices */
-#define USB_PID_OBDEV_SHARED_MIDI   1508    /* shared PID for MIDI class devices */
+#define USB_VID_OBDEV_SHARED 5824        /* obdev's shared vendor ID */
+#define USB_PID_OBDEV_SHARED_CUSTOM 1500 /* shared PID for custom class devices */
+#define USB_PID_OBDEV_SHARED_HID 1503    /* shared PID for HIDs except mice & keyboards */
+#define USB_PID_OBDEV_SHARED_CDCACM 1505 /* shared PID for CDC Modem devices */
+#define USB_PID_OBDEV_SHARED_MIDI 1508   /* shared PID for MIDI class devices */
 
 #endif /* __OPENDEVICE_H_INCLUDED__ */

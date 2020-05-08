@@ -23,11 +23,10 @@ respectively.
 #include <usb.h>        /* this is libusb */
 #include "opendevice.h" /* common code moved to separate module */
 
-#include "../firmware/requests.h"   /* custom request numbers */
-#include "../firmware/usbconfig.h"  /* device's VID/PID and names */
+#include "../firmware/requests.h"  /* custom request numbers */
+#include "../firmware/usbconfig.h" /* device's VID/PID and names */
 
-static void usage(char *name)
-{
+static void usage(char *name) {
     fprintf(stderr, "usage:\n");
     fprintf(stderr, "  %s on ....... turn on LED\n", name);
     fprintf(stderr, "  %s off ...... turn off LED\n", name);
@@ -37,16 +36,15 @@ static void usage(char *name)
 #endif /* ENABLE_TEST */
 }
 
-int main(int argc, char **argv)
-{
-usb_dev_handle      *handle = NULL;
-const unsigned char rawVid[2] = {USB_CFG_VENDOR_ID}, rawPid[2] = {USB_CFG_DEVICE_ID};
-char                vendor[] = {USB_CFG_VENDOR_NAME, 0}, product[] = {USB_CFG_DEVICE_NAME, 0};
-char                buffer[4];
-int                 cnt, vid, pid, isOn;
+int main(int argc, char **argv) {
+    usb_dev_handle *handle = NULL;
+    const unsigned char rawVid[2] = {USB_CFG_VENDOR_ID}, rawPid[2] = {USB_CFG_DEVICE_ID};
+    char vendor[] = {USB_CFG_VENDOR_NAME, 0}, product[] = {USB_CFG_DEVICE_NAME, 0};
+    char buffer[4];
+    int cnt, vid, pid, isOn;
 
     usb_init();
-    if(argc < 2){   /* we need at least one argument */
+    if (argc < 2) { /* we need at least one argument */
         usage(argv[0]);
         exit(1);
     }
@@ -55,7 +53,7 @@ int                 cnt, vid, pid, isOn;
     pid = rawPid[1] * 256 + rawPid[0];
     /* The following function is in opendevice.c: */
     int rc = usbOpenDevice(&handle, vid, vendor, pid, product, NULL, NULL, stderr);
-    if(rc != 0){
+    if (rc != 0) {
         fprintf(stderr, "Could not find USB device \"%s\" with vid=0x%x pid=0x%x. rc[%d]\n", product, vid, pid, rc);
         exit(1);
     }
@@ -81,44 +79,47 @@ int                 cnt, vid, pid, isOn;
     }
 #endif
 
-    if(strcasecmp(argv[1], "status") == 0){
-        cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, CUSTOM_RQ_GET_STATUS, 0, 0, buffer, sizeof(buffer), 5000);
-        if(cnt < 1){
-            if(cnt < 0){
+    if (strcasecmp(argv[1], "status") == 0) {
+        cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, CUSTOM_RQ_GET_STATUS, 0, 0,
+                              buffer, sizeof(buffer), 5000);
+        if (cnt < 1) {
+            if (cnt < 0) {
                 fprintf(stderr, "USB error: %s\n", usb_strerror());
-            }else{
+            } else {
                 fprintf(stderr, "only %d bytes received.\n", cnt);
             }
-        }else{
+        } else {
             printf("LED is %s\n", buffer[0] ? "on" : "off");
         }
-    }else if((isOn = (strcasecmp(argv[1], "on") == 0)) || strcasecmp(argv[1], "off") == 0){
-        cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_OUT, CUSTOM_RQ_SET_STATUS, isOn, 0, buffer, 0, 5000);
-        if(cnt < 0){
+    } else if ((isOn = (strcasecmp(argv[1], "on") == 0)) || strcasecmp(argv[1], "off") == 0) {
+        cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_OUT, CUSTOM_RQ_SET_STATUS, isOn,
+                              0, buffer, 0, 5000);
+        if (cnt < 0) {
             fprintf(stderr, "USB error: %s\n", usb_strerror());
         }
 #if ENABLE_TEST
-    }else if(strcasecmp(argv[1], "test") == 0){
+    } else if (strcasecmp(argv[1], "test") == 0) {
         int i;
         srandomdev();
-        for(i = 0; i < 50000; i++){
+        for (i = 0; i < 50000; i++) {
             int value = random() & 0xffff, index = random() & 0xffff;
             int rxValue, rxIndex;
-            if((i+1) % 100 == 0){
-                fprintf(stderr, "\r%05d", i+1);
+            if ((i + 1) % 100 == 0) {
+                fprintf(stderr, "\r%05d", i + 1);
                 fflush(stderr);
             }
-            cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, CUSTOM_RQ_ECHO, value, index, buffer, sizeof(buffer), 5000);
-            if(cnt < 0){
+            cnt = usb_control_msg(handle, USB_TYPE_VENDOR | USB_RECIP_DEVICE | USB_ENDPOINT_IN, CUSTOM_RQ_ECHO, value,
+                                  index, buffer, sizeof(buffer), 5000);
+            if (cnt < 0) {
                 fprintf(stderr, "\nUSB error in iteration %d: %s\n", i, usb_strerror());
                 break;
-            }else if(cnt != 4){
+            } else if (cnt != 4) {
                 fprintf(stderr, "\nerror in iteration %d: %d bytes received instead of 4\n", i, cnt);
                 break;
             }
             rxValue = ((int)buffer[0] & 0xff) | (((int)buffer[1] & 0xff) << 8);
             rxIndex = ((int)buffer[2] & 0xff) | (((int)buffer[3] & 0xff) << 8);
-            if(rxValue != value || rxIndex != index){
+            if (rxValue != value || rxIndex != index) {
                 fprintf(stderr, "\ndata error in iteration %d:\n", i);
                 fprintf(stderr, "rxValue = 0x%04x value = 0x%04x\n", rxValue, value);
                 fprintf(stderr, "rxIndex = 0x%04x index = 0x%04x\n", rxIndex, index);
@@ -126,7 +127,7 @@ int                 cnt, vid, pid, isOn;
         }
         fprintf(stderr, "\nTest completed.\n");
 #endif /* ENABLE_TEST */
-    }else{
+    } else {
         usage(argv[0]);
         exit(1);
     }

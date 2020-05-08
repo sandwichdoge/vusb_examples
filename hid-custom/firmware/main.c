@@ -15,19 +15,19 @@ at least be connected to INT0 as well.
 We assume that an LED is connected to port B bit 0. If you connect it to a
 different port or bit, change the macros below:
 */
-#define LED_PORT_DDR        DDRB
-#define LED_PORT_OUTPUT     PORTB
-#define LED_BIT             0
+#define LED_PORT_DDR DDRB
+#define LED_PORT_OUTPUT PORTB
+#define LED_BIT 0
 
+#include <avr/interrupt.h> /* for sei() */
 #include <avr/io.h>
 #include <avr/wdt.h>
-#include <avr/interrupt.h>  /* for sei() */
-#include <util/delay.h>     /* for _delay_ms() */
+#include <util/delay.h> /* for _delay_ms() */
 
-#include <avr/pgmspace.h>   /* required by usbdrv.h */
+#include <avr/pgmspace.h> /* required by usbdrv.h */
+#include "oddebug.h"      /* This is also an example for using debug macros */
+#include "requests.h"     /* The custom request numbers we use */
 #include "usbdrv.h"
-#include "oddebug.h"        /* This is also an example for using debug macros */
-#include "requests.h"       /* The custom request numbers we use */
 
 /* ------------------------------------------------------------------------- */
 /* ----------------------------- USB interface ----------------------------- */
@@ -36,49 +36,47 @@ different port or bit, change the macros below:
 /* USB report descriptor */
 
 PROGMEM const char usbHidReportDescriptor[22] = {
-    0x05, 0x0c,       // USAGE_PAGE (Consumer Devices)
-    0x0a, 0x05, 0x01, // USAGE (Room Temperature)
-    0xa1, 0x01,       // COLLECTION (Application)
-    0x0a, 0x05, 0x01, //   USAGE (Room Temperature)
-    0x15, 0x00,       //   LOGICAL_MINIMUM (0)
-    0x26, 0xff, 0x00, //   LOGICAL_MAXIMUM (255)
-    0x75, 0x08,       //   REPORT_SIZE (8)
-    0x95, 0x09,       //   REPORT_COUNT (9)
-    0xb1, 0x02,       //   FEATURE (Data,Var,Abs)
-    0xc0              // END_COLLECTION
+    0x05, 0x0c,        // USAGE_PAGE (Consumer Devices)
+    0x0a, 0x05, 0x01,  // USAGE (Room Temperature)
+    0xa1, 0x01,        // COLLECTION (Application)
+    0x0a, 0x05, 0x01,  //   USAGE (Room Temperature)
+    0x15, 0x00,        //   LOGICAL_MINIMUM (0)
+    0x26, 0xff, 0x00,  //   LOGICAL_MAXIMUM (255)
+    0x75, 0x08,        //   REPORT_SIZE (8)
+    0x95, 0x09,        //   REPORT_COUNT (9)
+    0xb1, 0x02,        //   FEATURE (Data,Var,Abs)
+    0xc0               // END_COLLECTION
 };
 
-usbMsgLen_t usbFunctionSetup(uchar data[8])
-{
-usbRequest_t    *rq = (void *)data;
-static uchar    dataBuffer[4];  /* buffer must stay valid when usbFunctionSetup returns */
+usbMsgLen_t usbFunctionSetup(uchar data[8]) {
+    usbRequest_t *rq = (void *)data;
+    static uchar dataBuffer[4]; /* buffer must stay valid when usbFunctionSetup returns */
 
-    if(rq->bRequest == CUSTOM_RQ_ECHO){ /* echo -- used for reliability tests */
+    if (rq->bRequest == CUSTOM_RQ_ECHO) { /* echo -- used for reliability tests */
         dataBuffer[0] = rq->wValue.bytes[0];
         dataBuffer[1] = rq->wValue.bytes[1];
         dataBuffer[2] = rq->wIndex.bytes[0];
         dataBuffer[3] = rq->wIndex.bytes[1];
-        usbMsgPtr = dataBuffer;         /* tell the driver which data to return */
+        usbMsgPtr = dataBuffer; /* tell the driver which data to return */
         return 4;
-    }else if(rq->bRequest == CUSTOM_RQ_SET_STATUS){
-        if(rq->wValue.bytes[0] & 1){    /* set LED */
+    } else if (rq->bRequest == CUSTOM_RQ_SET_STATUS) {
+        if (rq->wValue.bytes[0] & 1) { /* set LED */
             LED_PORT_OUTPUT |= _BV(LED_BIT);
-        }else{                          /* clear LED */
+        } else { /* clear LED */
             LED_PORT_OUTPUT &= ~_BV(LED_BIT);
         }
-    }else if(rq->bRequest == CUSTOM_RQ_GET_STATUS){
+    } else if (rq->bRequest == CUSTOM_RQ_GET_STATUS) {
         dataBuffer[0] = ((LED_PORT_OUTPUT & _BV(LED_BIT)) != 0);
-        usbMsgPtr = dataBuffer;         /* tell the driver which data to return */
-        return 1;                       /* tell the driver to send 1 byte */
+        usbMsgPtr = dataBuffer; /* tell the driver which data to return */
+        return 1;               /* tell the driver to send 1 byte */
     }
-    return 0;   /* default for not implemented requests: return no data back to host */
+    return 0; /* default for not implemented requests: return no data back to host */
 }
 
 /* ------------------------------------------------------------------------- */
 
-int __attribute__((noreturn)) main(void)
-{
-uchar   i;
+int __attribute__((noreturn)) main(void) {
+    uchar i;
 
     wdt_enable(WDTO_1S);
     /* Even if you don't use the watchdog, turn it off here. On newer devices,
@@ -89,20 +87,20 @@ uchar   i;
      * additional hardware initialization.
      */
     odDebugInit();
-    DBG1(0x00, 0, 0);       /* debug output: main starts */
+    DBG1(0x00, 0, 0); /* debug output: main starts */
     usbInit();
-    usbDeviceDisconnect();  /* enforce re-enumeration, do this while interrupts are disabled! */
+    usbDeviceDisconnect(); /* enforce re-enumeration, do this while interrupts are disabled! */
     i = 0;
-    while(--i){             /* fake USB disconnect for > 250 ms */
+    while (--i) { /* fake USB disconnect for > 250 ms */
         wdt_reset();
         _delay_ms(1);
     }
     usbDeviceConnect();
-    LED_PORT_DDR |= _BV(LED_BIT);   /* make the LED bit an output */
+    LED_PORT_DDR |= _BV(LED_BIT); /* make the LED bit an output */
     sei();
-    DBG1(0x01, 0, 0);       /* debug output: main loop starts */
-    for(;;){                /* main event loop */
-        DBG1(0x02, 0, 0);   /* debug output: main loop iterates */
+    DBG1(0x01, 0, 0);     /* debug output: main loop starts */
+    for (;;) {            /* main event loop */
+        DBG1(0x02, 0, 0); /* debug output: main loop iterates */
         wdt_reset();
         usbPoll();
     }
